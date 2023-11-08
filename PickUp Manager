@@ -1,0 +1,190 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class PickUpManager : MonoBehaviour
+{
+    [SerializeField] private string InteractableTag = "Interactable";
+
+    public PlayerMovement playerMovement;
+    public MouseLook mouseLook;
+    public highlight highlight;
+
+    public Collider handCollider;
+
+    [Header("Mouse's Dot")]
+    public GameObject defaultDot;
+    public GameObject selectedDot;
+
+    public GameObject _selection;
+    public Transform hand;
+    
+
+    [Header("Boolean")]
+    public bool canPickUp;
+    public bool canPutDown;
+    public bool pickedUp;
+    public bool rayCastOn;
+
+    Vector3 origPos;
+    Vector3 origAngle;
+
+    private void Awake()
+    {
+        canPutDown = true;
+    }
+    // Start is called before the first frame update
+    void Start()
+    {
+        defaultDot.SetActive(true);
+        selectedDot.SetActive(false);
+
+        rayCastOn = true;
+
+        handCollider.enabled = false;
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if (rayCastOn == true)
+        {
+            if (_selection != null)
+            {
+                defaultDot.SetActive(true);
+                selectedDot.SetActive(false);
+                canPickUp = false;
+                _selection = null;
+            }
+            if (_selection == null)
+            {
+                _selection = this.gameObject;
+            }
+
+
+            //raycast
+            if (Camera.main != null)
+            {
+                var ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+                RaycastHit hit;
+                if (Physics.Raycast(ray, out hit, 1f))
+                {
+                    GameObject selection = hit.collider.gameObject;
+                    if (selection.CompareTag(InteractableTag))
+                    {
+
+                        defaultDot.SetActive(false);
+                        selectedDot.SetActive(true);
+                        canPickUp = true;
+
+                        _selection = selection;
+                    }
+                }
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        //pick up
+        if (canPickUp == true && pickedUp == false)
+        {
+            if (Input.GetKeyDown(KeyCode.E))
+            {
+                pickUp();
+            }
+        }
+
+        //put down
+        else if (canPutDown)
+        {
+            if (pickedUp == true)
+            {
+                if (Input.GetKeyDown(KeyCode.E))
+                {
+                    putDown();
+                }
+            }
+        }
+    }
+
+    public void pickUp()
+    {
+        var selectionRenderer = _selection.GetComponent<Transform>();
+        var rigidbody = _selection.GetComponent<Rigidbody>();
+        var collider = _selection.GetComponent<Collider>();
+
+        //disable gameObject's gravity
+        rigidbody.useGravity = false;
+
+        //change dot
+        defaultDot.SetActive(true);
+        selectedDot.SetActive(false);
+
+        //save selected object initial position & angle
+        origPos = _selection.transform.position;
+        origAngle = _selection.transform.eulerAngles;
+
+        //object location after pick up
+        hand.transform.eulerAngles = new Vector3(0, 0, 0);
+        _selection.transform.position = hand.position;
+        _selection.transform.parent = GameObject.Find("Hand").transform;
+
+        //disable collider
+        if (_selection.name != "Slide")
+        {
+            collider.enabled = false;
+        }
+
+        //boolean
+        pickedUp = true;
+        canPickUp = false;
+        rayCastOn = false;
+        highlight.switchLayer = false;
+
+        //handCollider.enabled = true;
+        //mouseLook.enabled = false;       
+        
+        // show mouse cursor
+        Cursor.visible = true;
+    }
+
+    public void putDown()
+    {
+        var collider = _selection.GetComponent<Collider>();
+        var rigidbody = _selection.GetComponent<Rigidbody>();
+
+        //enable rigidbody
+        rigidbody.detectCollisions = true;
+        rigidbody.useGravity = true;
+
+        //return selected object to its initial position and angle
+        if (_selection.name == "JAMES Lid")
+        {
+            _selection.transform.parent = GameObject.Find("JAMES Bottle").transform;
+        }
+        else
+        {
+            _selection.transform.parent = null;
+        }
+        _selection.transform.position = origPos;
+        _selection.transform.eulerAngles = origAngle;
+
+        //enable collider
+        collider.enabled = true;
+
+        //boolean
+        rayCastOn = true;
+        pickedUp = false;
+        highlight.switchLayer = true;
+
+        handCollider.enabled = false;
+        mouseLook.enabled = true;
+
+        //hide mouse cursor when put down object
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        mouseLook.enable = true;    
+    }
