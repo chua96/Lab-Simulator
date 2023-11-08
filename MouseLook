@@ -1,0 +1,77 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class MouseLook : MonoBehaviour
+{
+    //public float mouseSensitivity = 500f;
+    public Transform playerBody;
+    float xRotation = 0f;
+
+    public bool canLock;
+    public bool enable;
+
+    // Start is called before the first frame update
+    void Start()
+    {
+        canLock = true;
+        enable = true;
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if (enable)
+        {
+            if (canLock)
+            {
+                //lock mouse cursor at middle of the screen
+                if (Input.GetMouseButtonDown(0))
+                {
+                    lockMouse();
+                }
+                else if (Input.GetKeyDown(KeyCode.Escape))
+                {
+                    unlockMouse();
+                }
+            }
+
+            //taking mouse input
+            float mouseX = Input.GetAxis("Mouse X");
+            float mouseY = Input.GetAxis("Mouse Y");
+            if (Application.platform == RuntimePlatform.WebGLPlayer)
+            {
+                mouseX = MouseLook.DampenedMovement(mouseX);
+            }
+
+            //rotate camera up and down
+            xRotation -= mouseY;
+            xRotation = Mathf.Clamp(xRotation, -90f, 90f);
+            transform.localEulerAngles = new Vector3(xRotation, 0f, 0f);
+
+            //rotate left and right
+            playerBody.Rotate(Vector3.up * mouseX);
+        }
+       
+    }
+
+    public static float DampenedMovement(float value)
+    {
+        if (Mathf.Abs(value) > 1f)
+        {
+            return Mathf.Lerp(value, Mathf.Sign(value), 0.5f);
+        }
+        return value;
+    }
+
+    private void lockMouse()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    private void unlockMouse()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
